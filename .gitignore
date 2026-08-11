@@ -1,0 +1,29 @@
+# Ambienti virtuali e credenziali
+venv/
+env/
+.env
+
+# Cache e file compilati Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Log e metriche generate (FONDAMENTALE per il MetricsTracker)
+data/*.csv
+*.log
+
+# Modelli IA scaricati in locale (nel caso HuggingFace salvi pesi qui)
+.cache/
+models/
+
+# Jupyter Notebooks
+.ipynb_checkpoints/
+
+# IDE e configurazioni locali
+.vscode/
+.idea/
+
+# File di sistema (Mac/Windows)
+.DS_Store
+Thumbs.db
