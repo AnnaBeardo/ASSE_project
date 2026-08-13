@@ -12,7 +12,7 @@ BASE_DIR = Path(__file__).resolve().parent.parent
 TRAINING_FILE = BASE_DIR / "data" / "router_training.csv"
 MODEL_FILE = BASE_DIR / "data" / "router_trained.joblib"
 
-
+# Update the training data if needed
 def load_training_data():
     prompts = []
     labels = []
@@ -26,7 +26,7 @@ def load_training_data():
 
     return prompts, labels
 
-
+# Train the model and save it to a file
 def train():
     prompts, labels = load_training_data()
 

@@ -7,8 +7,8 @@ from prompt_compressor import PromptCompressor
 
 load_dotenv()
 
-FLASH_MODEL = "gemma-4-31b-it"
-PRO_MODEL = "gemma-4-31b-it"
+FLASH_MODEL = "gemini-2.5-flash"
+PRO_MODEL = "gemini-2.5-pro"
 
 class LLMHandler:
     def __init__(self, temperature: float = 0.0):
