@@ -1,11 +1,13 @@
 import re
-from router_keywords import REASONING_KEYWORDS, CODING_KEYWORDS, MATH_KEYWORDS
+from router_keywords import REASONING_KEYWORDS, CODING_KEYWORDS, MATH_KEYWORDS, FORMAT_KEYWORDS
 
 class ModelRouter:
     def __init__(self):
         self.reasoning_keywords = REASONING_KEYWORDS
         self.code_keywords = CODING_KEYWORDS
         self.math_keywords = MATH_KEYWORDS
+        self.format_keywords = FORMAT_KEYWORDS
+
 
         # Precompile regex patterns for code detection to improve performance
         self.code_patterns = re.compile(
@@ -23,6 +25,9 @@ class ModelRouter:
             r")"
         )
 
+    def _any_keyword_match(self, text: str, keywords: set) -> bool:
+        return any(re.search(rf"\b{re.escape(kw)}\b", text) for kw in keywords)
+
     def heuristic_route(self, prompt: str) -> str:
         """
         Evaluates the prompt and returns a routing decision: "high", "low", or "uncertain".
@@ -36,7 +41,7 @@ class ModelRouter:
         word_count = len(prompt.split())
 
         # Long prompt
-        if word_count > 150:
+        if word_count > 250:
             return "high"
 
         # --- Computing strong signals --- #
@@ -44,18 +49,18 @@ class ModelRouter:
         prompt_lower = prompt.lower()
         strong_signals = 0
         
-        if any(kw in prompt_lower for kw in self.reasoning_keywords):
+        if self._any_keyword_match(prompt_lower, self.reasoning_keywords):
             strong_signals += 1
             
-        if hasattr(self, 'format_keywords') and any(kw in prompt_lower for kw in self.format_keywords):
+        if hasattr(self, 'format_keywords') and self._any_keyword_match(prompt_lower, self.format_keywords):
             strong_signals += 1
 
-        if any(kw in prompt_lower for kw in self.math_keywords):
+        if self._any_keyword_match(prompt_lower, self.math_keywords):
             strong_signals += 1
 
         if strong_signals >= 2:
             return "high"
-        if word_count <= 30 and strong_signals == 0:
+        if word_count <= 15 and strong_signals == 0:
             return "low"
 
         return "uncertain"

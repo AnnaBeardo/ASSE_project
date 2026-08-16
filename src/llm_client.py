@@ -11,7 +11,7 @@ from router_semantic import SemanticRouter
 load_dotenv()
 
 FLASH_MODEL = "gemini-3.1-flash-lite"
-PRO_MODEL = "gemma-4-31B-it"
+PRO_MODEL = "gemma-4-31b-it"
 
 class LLMHandler:
     def __init__(self, temperature: float = 0.0):
@@ -28,7 +28,7 @@ class LLMHandler:
         
         self.heuristic_router = ModelRouter()
 
-        embedder_instance = self.compressor.embedder_model 
+        embedder_instance = self.compressor.model 
         self.semantic_router = SemanticRouter(embedder=embedder_instance)
 
     def invoke(self, prompt: str, enable_caveman: bool = True) -> dict:
@@ -39,9 +39,11 @@ class LLMHandler:
         # --- Dynamic routing --- #
         # Heuristic first, then Semantic if uncertain, done on the original prompt before any compression
         route_decision = self.heuristic_router.heuristic_route(prompt)
-        
+        used_semantic = False
+
         if route_decision == "uncertain":
-            route_decision = self.semantic_router.route(prompt) 
+            route_decision = self.semantic_router.route(prompt)
+            used_semantic = True
 
         model = self.pro_model if route_decision == "high" else self.flash_model
 
@@ -59,7 +61,7 @@ class LLMHandler:
         
         prompt_template = ChatPromptTemplate.from_messages(messages)
         chain = prompt_template | model | self.parser
-        
+
         chain = chain.with_retry(
             stop_after_attempt=3,
             wait_exponential_jitter=True
@@ -71,7 +73,7 @@ class LLMHandler:
         return {
             "response": response,
             "routed_to": PRO_MODEL if route_decision == "high" else FLASH_MODEL,
-            "route_logic": "heuristic" if route_decision != "uncertain" else "semantic",
+            "route_logic": "semantic" if used_semantic else "heuristic",
             "optimized_prompt_text": f"[System: {system_text}] User: {user_text}",
             "compression_stats": optimization_res["stats"]
         }

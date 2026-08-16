@@ -1,31 +1,23 @@
+import os
+import json
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
+_THIS_DIR = os.path.dirname(os.path.abspath(__file__))
+
 class SemanticRouter:
 
-    def __init__(self, embedder, threshold: float = 0.45):
-        # Recieves an embedder and a threshold for routing decisions
+    def __init__(self, embedder, margin_threshold: float = 0.05, json_path: str = None):
+        if json_path is None:
+            json_path = os.path.join(_THIS_DIR, "routing_prompts.json")
+
         self.embedder = embedder
-        self.threshold = threshold      # it's for the cosine similarity
+        self.margin_threshold = margin_threshold
         
-        # Utterances (examples)
-        self.flash_examples = [
-            "What is the capital of France?",
-            "Write a Python function to reverse a string.",
-            "Write a simple SQL query to select all users.",
-            "How do I say hello in Spanish?",
-            "Give me a quick recipe for pancakes."
-        ]
+        # Loading prompts from JSON file or fallback if not found
+        self.flash_examples, self.pro_examples = self._load_utterances(json_path)
         
-        self.pro_examples = [
-            "Explain the time complexity of the bubble sort algorithm and why it is inefficient.",
-            "Solve this logic puzzle step by step.",
-            "Provide a JSON schema strictly following the OpenAPI 3.0 specification.",
-            "Compare classical inheritance and prototypal inheritance in depth.",
-            "Analyze this system architecture and propose a microservices refactoring."
-        ]
-        
-        # Pre compute embeddings for the examples to speed up routing decisions
+        # Precompute embeddings for the loaded prompts if an embedder is provided
         if self.embedder:
             self.flash_embeddings = self.embedder.encode(self.flash_examples)
             self.pro_embeddings = self.embedder.encode(self.pro_examples)
@@ -33,24 +25,26 @@ class SemanticRouter:
             self.flash_embeddings = None
             self.pro_embeddings = None
 
+    def _load_utterances(self, json_path: str) -> tuple[list[str], list[str]]:
+        if os.path.exists(json_path):
+            try:
+                with open(json_path, "r", encoding="utf-8") as f:
+                    data = json.load(f)
+                    flash_examples = data.get("flash_examples", [])
+                    pro_examples = data.get("pro_examples", [])
+                    print(f"[SemanticRouter] Utterances from '{json_path}': "
+                          f"{len(flash_examples)} Flash, {len(pro_examples)} Pro.")
+                    return flash_examples, pro_examples
+            except Exception as e:
+                print(f"[SemanticRouter] Could not read {json_path}: {e}")
+
+        #if the file is not found or an error occurs, return empty lists     
+        raise FileNotFoundError(f"File not found: {json_path}")
+
     def route(self, prompt: str) -> str:
-        """
-        Calculates the semantic distance and routes to 'high' (Pro) or 'low' (Flash).
-        """
-        # Fallback of security: if the embedder is not loaded or the prompt is empty, use Flash
         if not self.embedder or not prompt:
             return "low"
-
-        # Transform the input prompt into a vector
         prompt_embedding = self.embedder.encode([prompt])
-        
-        # Calculate the Cosine Similarity between the prompt and the known routes
         flash_sim = np.max(cosine_similarity(prompt_embedding, self.flash_embeddings))
         pro_sim = np.max(cosine_similarity(prompt_embedding, self.pro_embeddings))
-        
-        # If the prompt is more similar to the Pro examples and exceeds the threshold, activate Pro
-        if pro_sim > flash_sim and pro_sim >= self.threshold:
-            return "high"
-            
-        # Default route
-        return "low"
+        return "high" if (pro_sim - flash_sim) >= self.margin_threshold else "low"
