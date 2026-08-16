@@ -114,20 +114,18 @@ class PromptCompressor:
                 }
             }
 
-        # Step 1 PRIMA: Compressione Semantica (Layer 2)
-        # Sfrutta la punteggiatura originale per isolare ed eliminare le frasi inutili (es. "Hi there.")
+        # Step 1: Semantic Compression
         semantically_compressed = self._semantic_compress(original_prompt)
 
-        # Step 2 DOPO: Pulizia basata su regole e Stopwords (Layer 1)
-        # Prende il testo denso sopravvissuto e lo trasforma in stile "Caveman"
-        caveman_text = self._rule_based_clean(semantically_compressed)
+        # Step 2: Stopwords and rule-based cleaning
+        cleaned_text = self._rule_based_clean(semantically_compressed)
 
         orig_tokens = self.count_tokens(original_prompt)
-        comp_tokens = self.count_tokens(caveman_text)
+        comp_tokens = self.count_tokens(cleaned_text)
 
         return {
             "system_prompt": self.compressor_system_prompt,
-            "user_prompt": caveman_text,
+            "user_prompt": cleaned_text,
             "stats": {
                 "original_tokens": orig_tokens,
                 "compressed_tokens": comp_tokens,

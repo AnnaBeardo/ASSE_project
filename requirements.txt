@@ -6,3 +6,4 @@ pandas
 jupyter
 sentence-transformers
 scikit-learn
+datasets

@@ -5,10 +5,13 @@ from langchain_core.output_parsers import StrOutputParser
 from langchain_core.prompts import ChatPromptTemplate
 from prompt_compressor import PromptCompressor
 
+from euristic_router import ModelRouter
+from router_semantic import SemanticRouter 
+
 load_dotenv()
 
-FLASH_MODEL = "gemini-2.5-flash"
-PRO_MODEL = "gemini-2.5-pro"
+FLASH_MODEL = "gemini-3.1-flash-lite"
+PRO_MODEL = "gemma-4-31B-it"
 
 class LLMHandler:
     def __init__(self, temperature: float = 0.0):
@@ -22,54 +25,48 @@ class LLMHandler:
         )
         self.parser = StrOutputParser()
         self.compressor = PromptCompressor()
+        
+        self.heuristic_router = ModelRouter()
 
-    def invoke(self, prompt: str, complexity: str = "low", enable_caveman: bool = True) -> dict:
+        embedder_instance = self.compressor.embedder_model 
+        self.semantic_router = SemanticRouter(embedder=embedder_instance)
+
+    def invoke(self, prompt: str, enable_caveman: bool = True) -> dict:
         """
-        Optimize prompt, execute routing and return response with stats.
+        Optimize prompt, execute hybrid routing and return response with stats.
         """
-        # 1. Optimisation
+
+        # --- Dynamic routing --- #
+        # Heuristic first, then Semantic if uncertain, done on the original prompt before any compression
+        route_decision = self.heuristic_router.heuristic_route(prompt)
+        
+        if route_decision == "uncertain":
+            route_decision = self.semantic_router.route(prompt) 
+
+        model = self.pro_model if route_decision == "high" else self.flash_model
+
+        # --- Compression --- #
         optimization_res = self.compressor.optimize_prompt(prompt, enable_compression=enable_caveman)
         
         system_text = optimization_res["system_prompt"]
         user_text = optimization_res["user_prompt"]
 
-        # 2. Dynamic Routing (PLACEHOLDER)
-        model = self.pro_model if complexity == "high" else self.flash_model
-
-        # 3. Constructing chain using LangChain
+        # --- Building LangChain --- #
+        messages = []
         if system_text:
-            prompt_template = ChatPromptTemplate.from_messages([
-                ("system", system_text),
-                ("user", "{input}")
-            ])
-        else:
-            prompt_template = ChatPromptTemplate.from_messages([
-                ("user", "{input}")
-            ])
-
+            messages.append(("system", system_text))
+        messages.append(("user", "{input}"))
+        
+        prompt_template = ChatPromptTemplate.from_messages(messages)
         chain = prompt_template | model | self.parser
         
-        # 4. Invoke
+        # --- Invocation and response --- #
         response = chain.invoke({"input": user_text})
 
         return {
             "response": response,
+            "routed_to": PRO_MODEL if route_decision == "high" else FLASH_MODEL,
+            "route_logic": "heuristic" if route_decision != "uncertain" else "semantic",
             "optimized_prompt_text": f"[System: {system_text}] User: {user_text}",
             "compression_stats": optimization_res["stats"]
         }
-
-# Test di utilizzo
-if __name__ == "__main__":
-    llm = LLMHandler()
-    
-    sample_prompt = "Ciao buongiorno, potresti gentilmente scrivermi una funzione in Python per invertire una stringa? Grazie!"
-    
-    print("--- ESECUZIONE SENZA OTTIMIZZAZIONE ---")
-    res_raw = llm.invoke(sample_prompt, complexity="low", enable_caveman=False)
-    print(f"Risposta:\n{res_raw['response']}\n")
-
-    print("--- ESECUZIONE CON OTTIMIZZAZIONE ---")
-    res_opt = llm.invoke(sample_prompt, complexity="low", enable_caveman=True)
-    print(f"Prompt inviato: {res_opt['optimized_prompt_text']}")
-    print(f"Risposta:\n{res_opt['response']}")
-    print(f"Statistiche Token Input: {res_opt['compression_stats']}")
