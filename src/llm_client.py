@@ -60,6 +60,11 @@ class LLMHandler:
         prompt_template = ChatPromptTemplate.from_messages(messages)
         chain = prompt_template | model | self.parser
         
+        chain = chain.with_retry(
+            stop_after_attempt=3,
+            wait_exponential_jitter=True
+        )
+        
         # --- Invocation and response --- #
         response = chain.invoke({"input": user_text})
 
