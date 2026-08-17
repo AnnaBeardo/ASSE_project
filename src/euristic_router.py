@@ -44,15 +44,17 @@ class ModelRouter:
         if word_count > 250:
             return "high"
 
+        # Explicit request about formatted output
+        prompt_lower = prompt.lower()
+        if self._any_keyword_match(prompt_lower, self.format_keywords):
+            return "high"
+
         # --- Computing strong signals --- #
         # If the prompt touches at least two categories, it's likely complex
         prompt_lower = prompt.lower()
         strong_signals = 0
         
         if self._any_keyword_match(prompt_lower, self.reasoning_keywords):
-            strong_signals += 1
-            
-        if hasattr(self, 'format_keywords') and self._any_keyword_match(prompt_lower, self.format_keywords):
             strong_signals += 1
 
         if self._any_keyword_match(prompt_lower, self.math_keywords):

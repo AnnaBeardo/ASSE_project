@@ -24,15 +24,13 @@ MATH_KEYWORDS = set([
     'total', 'cost', 'costs', 'money', 'hours', 'hour', 'minutes', 'week',
     'half', 'years', 'year', 'twice', 'bought', 'buy', 'miles', 'students',
     'days', 'pounds', 'month', 'pay', 'feet', 'books',
-    '10', '12', '15', '20', '30', '40', '50',
 ])
 
 FORMAT_KEYWORDS = set([
     "json", "yaml", "xml", "schema", "openapi", "swagger",
     "csv", "markdown table", "table format",
     "architecture", "diagram", "flowchart", "uml", "erd",
-    "microservices", "api spec", "system design",
-    "outline", "template", "boilerplate", "structured format",
+    "microservices", "api spec", "system design", "template", "boilerplate", "structured format",
     "bullet points", "numbered list", "step by step",
     "config file", "dockerfile", "yaml file", "spec sheet",
 ])
