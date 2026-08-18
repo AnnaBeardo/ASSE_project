@@ -1,4 +1,5 @@
 import time
+from anyio import Path
 import tiktoken
 import pandas as pd
 import os
@@ -6,10 +7,17 @@ from datetime import datetime
 
 def generate_metrics_filename(base_dir="data", prefix="metrics", run_name=""):
     """Generate a unique filename based on the current timestamp."""
-    timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")
-    name_suffix = f"_{run_name}" if run_name else ""
-    filename = f"{prefix}_{timestamp}{name_suffix}.csv"
+    src_dir = os.path.dirname(os.path.abspath(__file__))
+    project_root = os.path.dirname(src_dir)
+    base_dir = os.path.join(project_root, "data")
+    
+    timestamp = datetime.now().strftime("%Y-%m-%d_%H-%M-%S")
+    
+    suffix = f"_{run_name}" if run_name else ""
+    filename = f"{prefix}{suffix}_{timestamp}.csv"
+    
     return os.path.join(base_dir, filename)
+
 
 class MetricsTracker:
     def __init__(self, run_name="", log_file=None): 
@@ -23,16 +31,26 @@ class MetricsTracker:
 
     def count_tokens(self, text: str) -> int:
         """Count tokens using tiktoken's tokenizer."""
+        if not text or not isinstance(text, str):
+            text = str(text) if text is not None else ""
         return len(self.tokenizer.encode(text))
 
     def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
         """Compute the cost based on the model and token counts."""
+        model_lower = model_name.lower()
 
-        #TODO: Cambiare calcoli in base ai modelli che scelgiamo di usare
-        if "flash" in model_name.lower():
-            rate_in, rate_out = 0.075, 0.30  # Costi Gemini 1.5 Flash
+        #TODO: Lavorare ancora su questa parte, capire un modo definitivo per affrontare la questione dei costi
+
+        if "flash" in model_lower:
+            # Cost estimation for Gemini Flash-Lite
+            rate_in, rate_out = 0.075, 0.30  
+        elif "gemma" in model_lower:
+            # Cost estimation for an open-source model with a ~30B parameter count
+            # If running locally for free, change these values to 0.0, 0.0
+            rate_in, rate_out = 0.80, 0.80  
         else:
-            rate_in, rate_out = 3.50, 10.50  # Costi Gemini 1.5 Pro
+            # Fallback for commercial PRO models (e.g., Gemini Pro, GPT-4)
+            rate_in, rate_out = 3.50, 10.50  
 
         return (in_tokens * rate_in / 1_000_000) + (out_tokens * rate_out / 1_000_000)
 
@@ -49,7 +67,7 @@ class MetricsTracker:
             "in_tokens": in_tokens,
             "out_tokens": out_tokens,
             "total_tokens": in_tokens + out_tokens,
-            "cost_USD": round(cost, 6)
+            "cost_USD": f"{cost:.6f}"
         }
         self.records.append(record)
         return record
