@@ -45,9 +45,7 @@ class PromptCompressor:
         }
 
         self.compressor_system_prompt = (
-            "You are an ultra-concise assistant. Answer the request directly and essential. "
-            "ELIMINATE pleasantries, preambles, obvious explanations, and courtesy phrases. "
-            "If code or JSON is requested, provide ONLY the code/JSON block without intro or outro."
+            "Zero fluff. Direct answers only. No greetings or preambles. Output code/JSON raw, with zero surrounding text."
         )
 
     def count_tokens(self, text: str) -> int:

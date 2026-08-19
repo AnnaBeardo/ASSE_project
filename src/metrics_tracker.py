@@ -56,6 +56,12 @@ class MetricsTracker:
 
     def log_call(self, model_name: str, complexity: str, prompt: str, response: str, latency: float):
         """Record metrics for a single API call."""
+        if not prompt: prompt = ""
+        if not isinstance(prompt, str): prompt = str(prompt)
+
+        if not response: response = ""
+        if not isinstance(response, str): response = str(response)
+
         in_tokens = self.count_tokens(prompt)
         out_tokens = self.count_tokens(response)
         cost = self.calculate_cost(model_name, in_tokens, out_tokens)
@@ -67,7 +73,9 @@ class MetricsTracker:
             "in_tokens": in_tokens,
             "out_tokens": out_tokens,
             "total_tokens": in_tokens + out_tokens,
-            "cost_USD": f"{cost:.6f}"
+            "cost_USD": f"{cost:.6f}",
+            "prompt": prompt,
+            "response": response,
         }
         self.records.append(record)
         return record
