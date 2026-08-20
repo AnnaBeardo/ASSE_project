@@ -36,7 +36,7 @@ class PromptCompressor:
             r"(?i)\b(what is|what are|how do i|how to)\b"
         ]
 
-        self.caveman_stopwords = {
+        self.stopwords = {
             "the", "a", "an", "is", "are", "am", "was", "were", "be", "been",
             "i", "me", "my", "you", "your", "he", "him", "she", "her", "it",
             "what", "who", "where", "when", "why", "how", "do", "does", "did",
@@ -54,21 +54,19 @@ class PromptCompressor:
         return len(self.tokenizer.encode(text))
 
     def _rule_based_clean(self, text: str) -> str:
-        """Layer 1: Pulizia sintattica e Caveman Stopwords"""
+        """Syntatic cleaning"""
         cleaned = text
-        
-        # 1. Rimuove convenevoli e preamboli tramite regex
+
         for pattern in self.courtesies_patterns:
             cleaned = re.sub(pattern, "", cleaned)
             
-        # 2. Rimuove la punteggiatura orfana o in eccesso (punti, virgole, punti esclamativi/interrogativi)
-        cleaned = re.sub(r'[,.!?]', ' ', cleaned)
+        cleaned = re.sub(r'[,.!?]', ' ', cleaned)   # Removing punctuation
         
-        # 3. Caveman Tokenization: Rimuove le stopwords
+        # Removing stopwords
         words = cleaned.split()
         caveman_words = [
             word for word in words 
-            if word.lower() not in self.caveman_stopwords
+            if word.lower() not in self.stopwords
         ]
         
         return " ".join(caveman_words).strip()
@@ -115,10 +113,7 @@ class PromptCompressor:
                 }
             }
 
-        # Step 1: Semantic Compression
         semantically_compressed = self._semantic_compress(original_prompt)
-
-        # Step 2: Stopwords and rule-based cleaning
         cleaned_text = self._rule_based_clean(semantically_compressed)
 
         orig_tokens = self.count_tokens(original_prompt)

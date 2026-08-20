@@ -1,7 +1,7 @@
-# File pulito manualmente a partire dalla lista generata con TF-IDF su dataset HF.
-# Rimossi: stopword, verbi ausiliari/generici, sostantivi iper-specifici del dataset
-# originale (specie animali, città, film...) che non portano segnale di complessità
-# e causavano falsi positivi su prompt banali.
+# File manually cleaned from the list generated with TF-IDF on the HF dataset.
+# Removed: stopwords, auxiliary/generic verbs, and hyper-specific nouns from the
+# original dataset (animal species, cities, films...) that do not indicate complexity
+# and caused false positives on trivial prompts.
 
 REASONING_KEYWORDS = set([
     'identify', 'classify', 'summarize', 'summary', 'ideas', 'types',

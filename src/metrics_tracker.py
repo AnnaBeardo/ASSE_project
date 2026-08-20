@@ -88,21 +88,3 @@ class MetricsTracker:
         else:
             df.to_csv(self.log_file, index=False)
         print(f"Metriche salvate in {self.log_file}")
-
-# Independent test for the MetricsTracker class
-if __name__ == "__main__":
-    tracker = MetricsTracker()
-    
-    start_time = time.time()
-    time.sleep(0.5)  # Simulate a delay for testing latency
-    end_time = time.time()
-    
-    tracker.log_call(
-        model_name="gemini-flash-latest",
-        complexity="low",
-        prompt="Qual è la capitale dell'Italia?",
-        response="Roma.",
-        latency=end_time - start_time
-    )
-    
-    tracker.save_to_csv()
