@@ -3,34 +3,89 @@
 # original dataset (animal species, cities, films...) that do not indicate complexity
 # and caused false positives on trivial prompts.
 
-REASONING_KEYWORDS = set([
-    'identify', 'classify', 'summarize', 'summary', 'ideas', 'types',
-    'bulleted list', 'classify following', 'identify instrument',
-    'identify animal', 'given text',
-])
+REASONING_KEYWORDS = {
+    "reasoning",
+    "show reasoning",
+    "show the reasoning",
+    "explain the reasoning",
+    "show calculation",
+    "show the calculation",
+    "justify",
+    "analyze",
+    "analyse",
+    "compare",
+    "trade-off",
+    "trade-offs",
+    "tradeoffs",
+    "evaluate",
+    "debug",
+    "review",
+    "redesign",
+    "reliability",
+}
 
-CODING_KEYWORDS = set([
-    'create', 'code', 'function', 'array', 'python', 'string', 'strings',
-    'numbers', 'program', 'javascript', 'query', 'sql', 'generate', 'java',
-    'print', 'prints', 'sql query', 'html', 'table', 'elements', 'element',
-    'class', 'create function', 'write code', 'write function', 'write sql',
-    'write python', 'algorithm', 'data', 'value', 'sum', 'given string',
-    'given list', 'given array', 'loop', 'returns', 'integers', 'input',
-    'output', 'construct', 'convert', 'calculate', 'following code',
-    'sort', 'script', 'dictionary', 'snippet',
-])
 
-MATH_KEYWORDS = set([
-    'total', 'cost', 'costs', 'money', 'hours', 'hour', 'minutes', 'week',
-    'half', 'years', 'year', 'twice', 'bought', 'buy', 'miles', 'students',
-    'days', 'pounds', 'month', 'pay', 'feet', 'books',
-])
+CODING_KEYWORDS = {
+    "code",
+    "function",
+    "python",
+    "javascript",
+    "node.js",
+    "sql",
+    "postgresql",
+    "api",
+    "endpoint",
+    "algorithm",
+    "database",
+    "list",
+    "array",
+    "dictionary",
+    "express",
+    "flask",
+    "class",
+    "query",
+    "script",
+}
 
-FORMAT_KEYWORDS = set([
-    "json", "yaml", "xml", "schema", "openapi", "swagger",
-    "csv", "markdown table", "table format",
-    "architecture", "diagram", "flowchart", "uml", "erd",
-    "microservices", "api spec", "system design", "template", "boilerplate", "structured format",
-    "bullet points", "numbered list", "step by step",
-    "config file", "dockerfile", "yaml file", "spec sheet",
-])
+
+MATH_KEYWORDS = {
+    "equation",
+    "probability",
+    "calculation",
+    "derivative",
+    "integral",
+    "matrix",
+    "sequence",
+    "convergent",
+    "convergence",
+    "bounded",
+    "irrational",
+    "theorem",
+    "induction",
+    "regression",
+    "optimization",
+    "average speed",
+    "square root",
+}
+
+
+FORMAT_KEYWORDS = {
+    "json",
+    "yaml",
+    "xml",
+    "schema",
+    "openapi",
+    "swagger",
+    "csv",
+    "flowchart",
+    "uml",
+    "erd",
+    "microservices",
+    "api spec",
+    "system design",
+    "structured format",
+    "step by step",
+    "outline",
+    "bullet points",
+    "numbered list",
+}

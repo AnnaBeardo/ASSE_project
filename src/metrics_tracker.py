@@ -35,9 +35,49 @@ class MetricsTracker:
             text = str(text) if text is not None else ""
         return len(self.tokenizer.encode(text))
 
+    def normalize_response(self, response) -> str:
+        #Extract only the user-visible textual response. LangChain models may return structured content containing thinking/reasoning blocks and text blocks. Metrics should compare
+        #the actual answer text consistently between baseline and pipeline.
+        
+        if response is None:
+            return ""
+
+        if isinstance(response, str):
+            return response
+
+        if isinstance(response, list):
+            text_parts = []
+
+            for block in response:
+                if isinstance(block, str):
+                    text_parts.append(block)
+
+                elif isinstance(block, dict):
+                    if block.get("type") == "text":
+                        text = block.get("text", "")
+
+                        if text:
+                            text_parts.append(str(text))
+
+            if text_parts:
+                return "\n".join(text_parts)
+
+        try:
+            text = response.text
+
+            if text:
+                return str(text)
+
+        except (AttributeError, TypeError):
+            pass
+
+        return str(response)
+
     def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
         """Compute the cost based on the model and token counts."""
         model_lower = model_name.lower()
+        if model_lower == "error":
+            return 0.0
 
         #TODO: Lavorare ancora su questa parte, capire un modo definitivo per affrontare la questione dei costi
 
@@ -59,8 +99,7 @@ class MetricsTracker:
         if not prompt: prompt = ""
         if not isinstance(prompt, str): prompt = str(prompt)
 
-        if not response: response = ""
-        if not isinstance(response, str): response = str(response)
+        response = self.normalize_response(response)
 
         in_tokens = self.count_tokens(prompt)
         out_tokens = self.count_tokens(response)
