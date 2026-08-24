@@ -1,4 +1,5 @@
 import os
+from pathlib import Path
 from dotenv import load_dotenv
 from langchain_google_genai import ChatGoogleGenerativeAI
 from langchain_core.output_parsers import StrOutputParser
@@ -8,22 +9,29 @@ from prompt_compressor import PromptCompressor
 from euristic_router import ModelRouter
 from router_semantic import SemanticRouter 
 
-load_dotenv()
+project_root = Path(__file__).resolve().parent.parent
+load_dotenv(dotenv_path=project_root / ".env")
 
 FLASH_MODEL = "gemini-3.1-flash-lite"
 PRO_MODEL = "gemma-4-31b-it"
 
 class LLMHandler:
     def __init__(self, temperature: float = 0.0):
+        api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+        if not api_key:
+            raise ValueError("Impossibile trovare la chiave API! Verifica che il file .env esista nella root del progetto.")
+        
         self.flash_model = ChatGoogleGenerativeAI(
             model=FLASH_MODEL, 
-            temperature=temperature
+            temperature=temperature,
+            google_api_key=api_key
         )
         self.pro_model = ChatGoogleGenerativeAI(
             model=PRO_MODEL, 
-            temperature=temperature
+            temperature=temperature,
+            google_api_key=api_key
         )
-        self.parser = StrOutputParser()
+        # self.parser = StrOutputParser()
         self.compressor = PromptCompressor()
         
         self.heuristic_router = ModelRouter()
@@ -60,7 +68,8 @@ class LLMHandler:
         messages.append(("user", "{input}"))
         
         prompt_template = ChatPromptTemplate.from_messages(messages)
-        chain = prompt_template | model | self.parser
+        # chain = prompt_template | model | self.parser
+        chain = prompt_template | model
 
         chain = chain.with_retry(
             stop_after_attempt=3,
@@ -68,12 +77,21 @@ class LLMHandler:
         )
         
         # --- Invocation and response --- #
-        response = chain.invoke({"input": user_text})
+        #response = chain.invoke({"input": user_text})
+
+        ai_message = chain.invoke({"input": user_text})
+        
+        # Estrai i token ESATTI dai metadati restituiti da Google
+        usage = ai_message.usage_metadata
+        exact_in = usage.get("input_tokens", 0) if usage else 0
+        exact_out = usage.get("output_tokens", 0) if usage else 0
 
         return {
-            "response": response,
+            "response": ai_message.content,
             "routed_to": PRO_MODEL if route_decision == "high" else FLASH_MODEL,
             "route_logic": "semantic" if used_semantic else "heuristic",
             "optimized_prompt_text": f"[System: {system_text}] User: {user_text}",
-            "compression_stats": optimization_res["stats"]
+            "compression_stats": optimization_res["stats"],
+            "api_in_tokens": exact_in, 
+            "api_out_tokens": exact_out
         }

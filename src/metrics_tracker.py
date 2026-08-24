@@ -20,6 +20,13 @@ def generate_metrics_filename(base_dir="data", prefix="metrics", run_name=""):
 
 
 class MetricsTracker:
+    COST_REGISTRY = {
+        "gemini-3.1-flash-lite": {"input": 0.075, "output": 0.30},
+        "gemma-4-31b-it":        {"input": 0.20,  "output": 0.20},
+        "gemini-1.5-pro":        {"input": 3.50,  "output": 10.50},
+        "default":               {"input": 0.0,   "output": 0.0}
+    }
+
     def __init__(self, run_name="", log_file=None): 
         self.log_file = log_file or generate_metrics_filename(run_name=run_name)
         
@@ -73,8 +80,7 @@ class MetricsTracker:
 
         return str(response)
 
-    def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
-        """Compute the cost based on the model and token counts."""
+    """ def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
         model_lower = model_name.lower()
         if model_lower == "error":
             return 0.0
@@ -82,36 +88,67 @@ class MetricsTracker:
         #TODO: Lavorare ancora su questa parte, capire un modo definitivo per affrontare la questione dei costi
 
         if "flash" in model_lower:
-            # Cost estimation for Gemini Flash-Lite
-            rate_in, rate_out = 0.075, 0.30  
+            model_lower = "gemini-3.1-flash-lite"  
         elif "gemma" in model_lower:
-            # Cost estimation for an open-source model with a ~30B parameter count
-            # If running locally for free, change these values to 0.0, 0.0
-            rate_in, rate_out = 0.80, 0.80  
-        else:
-            # Fallback for commercial PRO models (e.g., Gemini Pro, GPT-4)
-            rate_in, rate_out = 3.50, 10.50  
+            model_lower = "gemma-4-31b-it"   
 
-        return (in_tokens * rate_in / 1_000_000) + (out_tokens * rate_out / 1_000_000)
+        try:
+            # Calcola esattamente sulla base del listino ufficiale
+            total_cost = calculate_cost_by_tokens(
+                model_name=model_lower, 
+                prompt_tokens=in_tokens, 
+                completion_tokens=out_tokens
+            )
+            return float(total_cost)
+        except Exception as e:
+            print(f"Attenzione: Impossibile calcolare i costi per {model_name} in tokencost. Ritorno 0.0")
+            return 0.0"""
+    
+    def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
+        """Compute the cost based on the model and token counts using internal registry."""
+        model_lower = model_name.lower()
+        if model_lower == "error":
+            return 0.0
 
-    def log_call(self, model_name: str, complexity: str, prompt: str, response: str, latency: float):
+        # Manteniamo la tua logica di normalizzazione dei nomi
+        if "flash" in model_lower:
+            model_lower = "gemini-3.1-flash-lite"  
+        elif "gemma" in model_lower:
+            model_lower = "gemma-4-31b-it"   
+
+        # Recupera le tariffe dal nostro registro (usa default se non trova il modello)
+        rates = self.COST_REGISTRY.get(model_lower, self.COST_REGISTRY["default"])
+
+        if rates == self.COST_REGISTRY["default"]:
+            print(f"Attenzione: Modello {model_lower} non trovato nel COST_REGISTRY. Costo 0.0")
+
+        # Calcolo esatto per milione di token
+        input_cost = (in_tokens / 1_000_000) * rates["input"]
+        output_cost = (out_tokens / 1_000_000) * rates["output"]
+        
+        return input_cost + output_cost
+    
+    def log_call(self, model_name: str, complexity: str, prompt: str, response: str, latency: float, in_tokens: int = None, out_tokens: int = None):
         """Record metrics for a single API call."""
         if not prompt: prompt = ""
         if not isinstance(prompt, str): prompt = str(prompt)
 
-        response = self.normalize_response(response)
+        # response = self.normalize_response(response)
+        if not response: response = ""
+        if not isinstance(response, str): response = str(response)
 
-        in_tokens = self.count_tokens(prompt)
-        out_tokens = self.count_tokens(response)
-        cost = self.calculate_cost(model_name, in_tokens, out_tokens)
+        actual_in_tokens = in_tokens if in_tokens is not None else self.count_tokens(prompt)
+        actual_out_tokens = out_tokens if out_tokens is not None else self.count_tokens(response)
+        
+        cost = self.calculate_cost(model_name, actual_in_tokens, actual_out_tokens)
 
         record = {
             "model": model_name,
             "complexity": complexity,
             "latency_sec": round(latency, 4),
-            "in_tokens": in_tokens,
-            "out_tokens": out_tokens,
-            "total_tokens": in_tokens + out_tokens,
+            "in_tokens": actual_in_tokens,
+            "out_tokens": actual_out_tokens,
+            "total_tokens": actual_in_tokens + actual_out_tokens,
             "cost_USD": f"{cost:.6f}",
             "prompt": prompt,
             "response": response,

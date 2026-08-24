@@ -269,18 +269,29 @@ def main():
         start_time = time.time()
 
         try:
-            baseline_response = handler.pro_model.invoke(prompt).content
+            # invoke() ora restituisce un AIMessage
+            ai_msg = handler.pro_model.invoke(prompt) 
+            baseline_response = ai_msg.content
+            
+            # Estrai token esatti
+            usage = ai_msg.usage_metadata
+            base_in = usage.get("input_tokens", 0) if usage else None
+            base_out = usage.get("output_tokens", 0) if usage else None
+            
             baseline_latency = time.time() - start_time
         except Exception as e:
             baseline_response = f"ERROR: {str(e)}"
             baseline_latency = 0.0
+            base_in = base_out = 0
 
         tracker.log_call(
             model_name=PRO_MODEL,
             complexity=f"BASELINE | {category}",
             prompt=prompt,
             response=baseline_response,
-            latency=baseline_latency
+            latency=baseline_latency,
+            in_tokens=base_in,    
+            out_tokens=base_out   
         )
 
         # ---------------------------------------------------------------------
@@ -291,39 +302,32 @@ def main():
         start_time = time.time()
 
         try:
-            result = handler.invoke(
-                prompt,
-                enable_caveman=True
-            )
+            result = handler.invoke(prompt, enable_caveman=True)
 
             pipeline_response = result["response"]
             pipeline_model = result["routed_to"]
             route_logic = result["route_logic"]
             optimized_prompt = result["optimized_prompt_text"]
             compression_stats = result["compression_stats"]
+            
+            # Recupera i token esatti aggiunti in llm_client.py
+            pipe_in = result.get("api_in_tokens")
+            pipe_out = result.get("api_out_tokens")
 
             pipeline_latency = time.time() - start_time
 
         except Exception as e:
-            pipeline_response = f"ERROR: {str(e)}"
-            pipeline_model = "ERROR"
-            route_logic = "ERROR"
-            optimized_prompt = prompt
-
-            compression_stats = {
-                "original_tokens": 0,
-                "compressed_tokens": 0,
-                "saved_tokens": 0
-            }
-
-            pipeline_latency = 0.0
+            # ... blocco except invariato, ma aggiungi token a 0 ...
+            pipe_in = pipe_out = 0
 
         tracker.log_call(
             model_name=pipeline_model,
             complexity=f"PIPELINE | {category} | {route_logic}",
             prompt=optimized_prompt,
             response=pipeline_response,
-            latency=pipeline_latency
+            latency=pipeline_latency,
+            in_tokens=pipe_in,     
+            out_tokens=pipe_out    
         )
 
         print(f"Model: {pipeline_model}")

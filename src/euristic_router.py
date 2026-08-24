@@ -33,7 +33,7 @@ class ModelRouter:
             re.IGNORECASE | re.DOTALL,
         )
 
-        # Segnali che, da soli, indicano realmente elevata complessità.
+        # Patterns that indicate likely complex reasoning or derivation.
         self.hard_complexity_patterns = re.compile(
             r"\b("
             r"prove|"
@@ -55,13 +55,13 @@ class ModelRouter:
             re.IGNORECASE,
         )
 
-        # Formati che richiedono una generazione strutturale non banale.
+        # Formats that are complex enough to warrant PRO on their own.
         self.strong_format_patterns = re.compile(
             r"\b(flowchart|uml|erd)\b",
             re.IGNORECASE,
         )
 
-        # Richieste in cui il formato deve essere rispettato rigidamente.
+        # Requests that require strict output formatting.
         self.strict_output_patterns = re.compile(
             r"("
             r"\breturn\s+only\b|"
@@ -73,8 +73,8 @@ class ModelRouter:
             re.IGNORECASE | re.DOTALL,
         )
 
-        # Casi corti che sono realmente banali anche se contengono
-        # espressioni come "step by step".
+        # Cases where the prompt is a simple arithmetic expression, 
+        # even with a request for step-by-step reasoning.
         self.simple_arithmetic_pattern = re.compile(
             r"^\s*"
             r"(?:answer\s+step\s+by\s+step:\s*)?"
@@ -84,8 +84,8 @@ class ModelRouter:
             re.IGNORECASE,
         )
 
-        # Domande fattuali che restano semplici anche se sono immerse
-        # in molto contesto irrilevante.
+        # Factual questions that remain simple even if they are embedded
+        # in a lot of irrelevant context.
         self.simple_factual_patterns = re.compile(
             r"("
             r"what\s+is\s+the\s+capital\s+of|"
@@ -95,7 +95,7 @@ class ModelRouter:
             re.IGNORECASE | re.DOTALL,
         )
 
-        # Prompt volutamente generici: meglio delegarli al semantic router.
+        # General-purpose patterns for ambiguous requests.
         self.ambiguous_patterns = re.compile(
             r"\b("
             r"design a solution|"
@@ -147,7 +147,7 @@ class ModelRouter:
         word_count = len(prompt.split())
 
         # ------------------------------------------------------------------
-        # 1. Complessità evidente
+        # 1. Evident complexity patterns
         # ------------------------------------------------------------------
 
         if self.code_patterns.search(prompt):
@@ -157,7 +157,7 @@ class ModelRouter:
             return "high"
 
         # ------------------------------------------------------------------
-        # 2. Casi evidentemente semplici
+        # 2. Evidently simple patterns
         # ------------------------------------------------------------------
 
         if self.simple_arithmetic_pattern.match(prompt):
@@ -167,7 +167,7 @@ class ModelRouter:
             return "low"
 
         # ------------------------------------------------------------------
-        # 3. Analisi dei segnali
+        # 3. Analysis of keywords and categories
         # ------------------------------------------------------------------
 
         reasoning_matches = self._keyword_matches(
@@ -190,11 +190,11 @@ class ModelRouter:
             self.format_keywords,
         )
 
-        # Alcuni formati sono sufficientemente complessi da soli.
+        # Patterns that indicate strong format requirements.
         if self.strong_format_patterns.search(prompt):
             return "high"
 
-        # Più vincoli di formato contemporaneamente.
+        # More than one strong format requirement.
         if len(format_matches) >= 2:
             return "high"
 
@@ -207,11 +207,9 @@ class ModelRouter:
         has_format = bool(format_matches)
 
         # ------------------------------------------------------------------
-        # 4. Coding semplice
+        # 4. Simple coding patterns
         # ------------------------------------------------------------------
 
-        # "Write a Python function that returns the larger integer"
-        # non deve essere automaticamente PRO.
         if (
             has_coding
             and not has_reasoning
@@ -222,7 +220,7 @@ class ModelRouter:
             return "low"
 
         # ------------------------------------------------------------------
-        # 5. Prompt information-dense / molti vincoli
+        # 5. Prompt information-dense / many constraints
         # ------------------------------------------------------------------
 
         constraint_count = len(
@@ -233,7 +231,7 @@ class ModelRouter:
             return "high"
 
         # ------------------------------------------------------------------
-        # 6. Combinazione di categorie
+        # 6. Combination of strong signals
         # ------------------------------------------------------------------
 
         strong_signals = sum(
@@ -249,14 +247,14 @@ class ModelRouter:
             return "high"
 
         # ------------------------------------------------------------------
-        # 7. Ambiguità intenzionale
+        # 7. Intentional ambiguity
         # ------------------------------------------------------------------
 
         if self.ambiguous_patterns.search(prompt):
             return "uncertain"
 
         # ------------------------------------------------------------------
-        # 8. Fast path realmente semplice
+        # 8. Combination of weak signals and prompt length
         # ------------------------------------------------------------------
 
         if word_count <= 15 and strong_signals == 0:

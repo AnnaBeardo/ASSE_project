@@ -7,47 +7,57 @@ For each prompt it measaures:
 - Output tokens 
 - Which model handled the request 
 - Which routing logic decided the routing (heuristic / semantic)
-
-
-!!! IMPORTANTE:  AGGIUSTARE LA QUESTIONE PREZZI !!! 
 """
 
+import os
 import sys
 import time
 from pathlib import Path
 from collections import defaultdict
+from dotenv import load_dotenv
 
 project_root = Path(__file__).resolve().parent.parent
 src_path = project_root / "src"
 sys.path.append(str(src_path))
 
+# Assicuriamoci che l'ambiente sia caricato per poter usare il tokenizzatore Google nativo
+load_dotenv(dotenv_path=project_root / ".env")
+
 from llm_client import LLMHandler, PRO_MODEL, FLASH_MODEL
 
+# -------------------------------------------------------------------------
+# NUOVO TOKENIZZATORE: Google Generative AI (Gemini/Gemma Native)
+# -------------------------------------------------------------------------
 try:
-    import tiktoken
-    _ENC = tiktoken.get_encoding("cl100k_base")
+    import google.generativeai as genai
+    
+    # Configura l'SDK con la chiave API (necessaria per il conteggio token esatto)
+    api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
+    if api_key:
+        genai.configure(api_key=api_key)
 
     def count_tokens(text: str) -> int:
         if not text:
             return 0
-        return len(_ENC.encode(text))
+        # Usiamo il modello Flash per contare i token (la tokenizzazione è condivisa tra i modelli Gemini 1.5)
+        model = genai.GenerativeModel(FLASH_MODEL)
+        return model.count_tokens(text).total_tokens
 
-    _TOKENIZER_INFO = "tiktoken (cl100k_base) "
+    _TOKENIZER_INFO = f"google.generativeai ({FLASH_MODEL} Native Tokenizer)"
 except ImportError:
     def count_tokens(text: str) -> int:
         if not text:
             return 0
-        # Raw estimation
+        # Raw estimation di sicurezza se la libreria manca
         return max(1, len(text) // 4)
 
-    _TOKENIZER_INFO = "Tiktoken not installed, using rough estimate (1 token ~ 4 chars)"
+    _TOKENIZER_INFO = "google.generativeai not installed, using rough estimate (1 token ~ 4 chars)"
 
 
-# Placeholder prices
-# !!! DA CAMBIARE !!! 
-COST_PER_1K_TOKENS = {
-    FLASH_MODEL: {"input": 0.0002, "output": 0.0006},
-    PRO_MODEL:   {"input": 0.0035, "output": 0.0105},
+# PREZZI AGGIORNATI: Costo per MILIONE di token (USD)
+COST_PER_1M_TOKENS = {
+    FLASH_MODEL: {"input": 0.075, "output": 0.30},
+    PRO_MODEL:   {"input": 3.50, "output": 10.50},
 }
 
 
@@ -71,12 +81,13 @@ TEST_PROMPTS = [
 
 
 def cost_of(model: str, input_tokens: int, output_tokens: int) -> float:
-    rates = COST_PER_1K_TOKENS[model]
-    return (input_tokens / 1000) * rates["input"] + (output_tokens / 1000) * rates["output"]
+    # Calcolo esatto per milione di token
+    rates = COST_PER_1M_TOKENS.get(model, {"input": 0.0, "output": 0.0})
+    return (input_tokens / 1_000_000) * rates["input"] + (output_tokens / 1_000_000) * rates["output"]
 
 
 def run_token_savings_test():
-    print(f"Used tokenizer: {_TOKENIZER_INFO}")
+    print(f"Used fallback tokenizer: {_TOKENIZER_INFO}")
     print("Initializing LLM pipeline...")
     handler = LLMHandler(temperature=0.0)
     print("-" * 90)
@@ -88,6 +99,7 @@ def run_token_savings_test():
     for i, prompt in enumerate(TEST_PROMPTS, 1):
         print(f"\nTest {i}/{len(TEST_PROMPTS)}: '{prompt[:60]}{'...' if len(prompt) > 60 else ''}'")
 
+        # Baseline: calcolo ESATTO tramite SDK nativo di Google
         raw_input_tokens = count_tokens(prompt)
 
         start = time.time()
@@ -100,19 +112,22 @@ def run_token_savings_test():
 
         routed_to = result.get("routed_to")
         route_logic = result.get("route_logic")
-        optimized_text = result.get("optimized_prompt_text", "")
-        response_text = result.get("response", "")
-
-        actual_input_tokens = count_tokens(optimized_text)
-        output_tokens = count_tokens(response_text)
+        
+        # --- ESTRAZIONE TOKEN ESATTI DALL'API ---
+        actual_input_tokens = result.get("api_in_tokens")
+        output_tokens = result.get("api_out_tokens")
+        
+        # Fallback al tokenizer nativo se i metadati API falliscono
+        if not actual_input_tokens or not output_tokens:
+            optimized_text = result.get("optimized_prompt_text", "")
+            response_text = result.get("response", "")
+            actual_input_tokens = count_tokens(optimized_text)
+            output_tokens = count_tokens(response_text)
 
         # --- Scenario reale: modello scelto dal routing, prompt compresso ---
         real_cost = cost_of(routed_to, actual_input_tokens, output_tokens)
 
         # --- Scenario baseline: sempre Pro, prompt NON compresso ---
-        # Nota: per l'output usiamo lo stesso numero di token della risposta reale.
-        # E' una semplificazione (un output "senza compressione" potrebbe differire
-        # leggermente), ma isola bene l'effetto di routing + compressione sull'input.
         baseline_cost = cost_of(PRO_MODEL, raw_input_tokens, output_tokens)
 
         rows.append({
@@ -172,11 +187,6 @@ def run_token_savings_test():
     print(f"Estimated total savings:                             ${cost_saved:.6f} "
           f"({cost_saved_pct:.1f}%)")
     print("=" * 90)
-    print("\nNote: The prices used in COST_PER_1K_TOKENS are indicative placeholders.")
-    print("The absolute dollar amount is not reliable until you update it with the")
-    print("actual rates of your Gemini plan. The savings percentage and the amount of")
-    print("tokens saved, however, are already informative as they are.")
-
 
 if __name__ == "__main__":
     run_token_savings_test()

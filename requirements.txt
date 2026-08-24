@@ -7,3 +7,4 @@ jupyter
 sentence-transformers
 scikit-learn
 datasets
+google-generativeai
