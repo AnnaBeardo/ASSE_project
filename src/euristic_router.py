@@ -260,7 +260,7 @@ class ModelRouter:
         if word_count <= 15 and strong_signals == 0:
             return "low"
 
-        # Un prompt lungo NON è automaticamente complesso.
+        # A long prompt with no strong signals is likely to be ambiguous or complex.
         if word_count > 250 and strong_signals == 0:
             return "uncertain"
 
