@@ -80,29 +80,6 @@ class MetricsTracker:
 
         return str(response)
 
-    """ def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
-        model_lower = model_name.lower()
-        if model_lower == "error":
-            return 0.0
-
-        #TODO: Lavorare ancora su questa parte, capire un modo definitivo per affrontare la questione dei costi
-
-        if "flash" in model_lower:
-            model_lower = "gemini-3.1-flash-lite"  
-        elif "gemma" in model_lower:
-            model_lower = "gemma-4-31b-it"   
-
-        try:
-            # Calcola esattamente sulla base del listino ufficiale
-            total_cost = calculate_cost_by_tokens(
-                model_name=model_lower, 
-                prompt_tokens=in_tokens, 
-                completion_tokens=out_tokens
-            )
-            return float(total_cost)
-        except Exception as e:
-            print(f"Attenzione: Impossibile calcolare i costi per {model_name} in tokencost. Ritorno 0.0")
-            return 0.0"""
     
     def calculate_cost(self, model_name: str, in_tokens: int, out_tokens: int) -> float:
         """Compute the cost based on the model and token counts using internal registry."""
@@ -110,19 +87,16 @@ class MetricsTracker:
         if model_lower == "error":
             return 0.0
 
-        # Manteniamo la tua logica di normalizzazione dei nomi
         if "flash" in model_lower:
             model_lower = "gemini-3.1-flash-lite"  
         elif "gemma" in model_lower:
             model_lower = "gemma-4-31b-it"   
 
-        # Recupera le tariffe dal nostro registro (usa default se non trova il modello)
         rates = self.COST_REGISTRY.get(model_lower, self.COST_REGISTRY["default"])
 
         if rates == self.COST_REGISTRY["default"]:
-            print(f"Attenzione: Modello {model_lower} non trovato nel COST_REGISTRY. Costo 0.0")
+            print(f"Warning: Cost rates for model '{model_name}' not found. Using default rates.")
 
-        # Calcolo esatto per milione di token
         input_cost = (in_tokens / 1_000_000) * rates["input"]
         output_cost = (out_tokens / 1_000_000) * rates["output"]
         
@@ -133,7 +107,6 @@ class MetricsTracker:
         if not prompt: prompt = ""
         if not isinstance(prompt, str): prompt = str(prompt)
 
-        # response = self.normalize_response(response)
         if not response: response = ""
         if not isinstance(response, str): response = str(response)
 

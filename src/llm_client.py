@@ -19,7 +19,7 @@ class LLMHandler:
     def __init__(self, temperature: float = 0.0):
         api_key = os.getenv("GOOGLE_API_KEY") or os.getenv("GEMINI_API_KEY")
         if not api_key:
-            raise ValueError("Impossibile trovare la chiave API! Verifica che il file .env esista nella root del progetto.")
+            raise ValueError("API key not found, please make sure your .env file contains GOOGLE_API_KEY or GEMINI_API_KEY.")
         
         self.flash_model = ChatGoogleGenerativeAI(
             model=FLASH_MODEL, 
@@ -31,7 +31,6 @@ class LLMHandler:
             temperature=temperature,
             google_api_key=api_key
         )
-        # self.parser = StrOutputParser()
         self.compressor = PromptCompressor()
         
         self.heuristic_router = ModelRouter()
@@ -68,7 +67,6 @@ class LLMHandler:
         messages.append(("user", "{input}"))
         
         prompt_template = ChatPromptTemplate.from_messages(messages)
-        # chain = prompt_template | model | self.parser
         chain = prompt_template | model
 
         chain = chain.with_retry(
@@ -77,17 +75,14 @@ class LLMHandler:
         )
         
         # --- Invocation and response --- #
-        #response = chain.invoke({"input": user_text})
-
-        ai_message = chain.invoke({"input": user_text})
+        response = chain.invoke({"input": user_text})
         
-        # Estrai i token ESATTI dai metadati restituiti da Google
-        usage = ai_message.usage_metadata
+        usage = response.usage_metadata
         exact_in = usage.get("input_tokens", 0) if usage else 0
         exact_out = usage.get("output_tokens", 0) if usage else 0
 
         return {
-            "response": ai_message.content,
+            "response": response.content,
             "routed_to": PRO_MODEL if route_decision == "high" else FLASH_MODEL,
             "route_logic": "semantic" if used_semantic else "heuristic",
             "optimized_prompt_text": f"[System: {system_text}] User: {user_text}",
