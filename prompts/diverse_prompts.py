@@ -1,0 +1,198 @@
+PROMPTS = [
+    # =========================================================
+    # 1. SIMPLE FACTUAL
+    # =========================================================
+    "What is the capital of Portugal?",
+    
+    "What is the chemical symbol for gold?",
+
+    # =========================================================
+    # 2. SIMPLE CONCEPTUAL
+    # =========================================================
+    "What is photosynthesis and why is it important for plants?",
+    
+    "Explain in simple terms what inflation means in economics.",
+
+    # =========================================================
+    # 3. SHORT LOGICAL REASONING
+    # =========================================================
+    "All roses are flowers. Some flowers fade quickly. Can we conclude that some roses fade quickly? Explain why.",
+    
+    "No reptiles are mammals. All snakes are reptiles. Can any snake be a mammal? Explain the reasoning.",
+
+    # =========================================================
+    # 4. MATHEMATICAL REASONING
+    # =========================================================
+    "A car travels 120 km at 60 km/h and then another 120 km at 40 km/h. What is its average speed for the entire journey? Show the reasoning.",
+    
+    "A bag contains 5 red balls, 4 blue balls, and 3 green balls. Two balls are drawn without replacement. What is the probability that both balls are the same color? Show the calculation.",
+
+    # =========================================================
+    # 5. SIMPLE CODING
+    # =========================================================
+    "Write a Python function that takes two integers and returns the larger one.",
+    
+    "Write a JavaScript function that takes an array of numbers and returns their sum.",
+
+    # =========================================================
+    # 6. COMPLEX CODING / DEBUGGING
+    # =========================================================
+    """A Node.js service processes jobs from a queue using several asynchronous workers.
+Sometimes two workers process the same job because they read its status before either one
+updates it. Explain the race condition and redesign the processing logic so that each job
+can be processed by only one worker, assuming PostgreSQL is used as the database.""",
+
+    """The following Python function becomes extremely slow when processing several million
+records. Identify the main performance problems and propose a more efficient implementation:
+
+def find_duplicates(values):
+    duplicates = []
+    for i in range(len(values)):
+        for j in range(len(values)):
+            if i != j and values[i] == values[j] and values[i] not in duplicates:
+                duplicates.append(values[i])
+    return duplicates
+""",
+
+    # =========================================================
+    # 7. CODE REVIEW / SECURITY
+    # =========================================================
+    """Review this Express endpoint for security vulnerabilities and explain how to fix them:
+
+app.get('/users/:id', async (req, res) => {
+    const query = `SELECT * FROM users WHERE id = ${req.params.id}`;
+    const result = await db.query(query);
+    res.json(result.rows);
+});
+""",
+
+    """Review the following Python code for security problems:
+
+@app.route('/download')
+def download():
+    filename = request.args.get('file')
+    return send_file('/var/app/uploads/' + filename)
+
+Identify possible attacks and propose a secure implementation.
+""",
+
+    # =========================================================
+    # 8. STRICT OUTPUT FORMAT
+    # =========================================================
+    """Return information about Italy using exactly this JSON structure:
+{
+  "country": string,
+  "capital": string,
+  "currency": string
+}
+Return only valid JSON and no additional text.""",
+
+    """List the numbers 1 through 5 and their squares as a CSV with exactly these columns:
+number,square
+Do not include Markdown, explanations, or any text outside the CSV.""",
+
+    # =========================================================
+    # 9. LONG BUT EASY
+    # =========================================================
+    """I am preparing a short general-knowledge quiz for a group of people who have very
+different backgrounds. Some are university students, some work in offices, some are retired,
+and a few are still in high school. The quiz will be printed on paper and used during an
+informal evening event. It is not part of an exam, no specialist knowledge is expected,
+and nobody will be allowed to use a phone or search engine. I have already written several
+questions about geography, history, science, sports, music, literature, food, and cinema.
+I am trying to keep the questions easy enough that most participants can answer at least
+half of them. I also want each answer to be short, ideally one or two words, because the
+person reading the answers aloud should be able to move quickly from one question to the
+next. The geography section currently includes questions about rivers, mountains,
+continents, flags, oceans, and European countries. There is no trick involved in the next
+question, no hidden assumption, and no need to discuss politics, history, population,
+language, culture, or the European Union. I do not need an explanation of how capitals are
+selected, a list of Portuguese cities, travel advice, demographic information, or
+alternative historical capitals. I only need the ordinary present-day answer that would
+appear in a basic school atlas or a general-knowledge quiz. Please keep the final answer
+as short as possible, because I am going to copy it directly into the answer sheet used
+by the quiz host. What is the capital of Portugal?""",
+
+    """Imagine that I am organizing a classroom activity for students who are learning
+very basic chemistry vocabulary. Before the activity starts, I want to prepare a small
+answer key so that I can check their responses quickly. The students have already studied
+atoms, elements, the periodic table, symbols, metals, nonmetals, and a few common laboratory
+materials. They do not need any discussion of atomic structure, isotopes, electron
+configuration, oxidation states, mining, economics, jewelry, industrial applications, or
+the historical origin of element names. They also do not need a description of the
+periodic table or instructions for performing an experiment. The exercise is intentionally
+simple and is meant only to test whether they recognize standard chemical symbols. Several
+neighboring questions ask for the symbols of oxygen, hydrogen, iron, copper, silver, and
+sodium. I want the answers to be very short so they fit in a narrow column on a printed
+worksheet. There is no ambiguity about notation, no alternative convention to consider,
+and no trick involving compounds or ions. I am not asking for the atomic number, atomic
+mass, Latin name, electron count, or any other property. I am also not asking how the
+symbol was chosen or why it differs from the English word. The response should contain
+only the standard chemical symbol used internationally for the element in its neutral
+elemental form. No sentence is necessary, and no additional context would be useful for
+this exercise. The specific element for this question is gold. What is the chemical symbol
+for gold?""",
+
+    # =========================================================
+    # 10. SHORT BUT COMPLEX
+    # =========================================================
+    "Prove that the square root of 2 is irrational.",
+    
+    "Is every bounded sequence convergent? Justify rigorously.",
+
+    # =========================================================
+    # 11. IRRELEVANT INFORMATION
+    # =========================================================
+    """Yesterday I was reorganizing my desk while listening to music. I found an old
+notebook from university and started reading some unrelated notes about databases.
+My laptop battery was almost empty, so I moved to another room and made some coffee.
+None of this is relevant to the actual task. Explain the difference between a primary
+key and a foreign key in a relational database.""",
+
+    """Our company started in 1998 and originally had an office next to a railway station.
+The office moved twice, the company logo changed in 2010, and the cafeteria was renovated
+last year. We currently have about 200 employees and use several unrelated internal tools.
+For the actual question, I only need to know: what is the difference between HTTP and HTTPS?""",
+
+    # =========================================================
+    # 12. INFORMATION-DENSE
+    # =========================================================
+    """Write a Python function named filter_users that accepts a list of dictionaries.
+Keep only users whose age is at least 18 and whose active field is True.
+Sort the resulting users by age in descending order.
+If two users have the same age, sort them alphabetically by name.
+Do not modify the original list.
+Return an empty list if the input list is empty.""",
+
+    """Design an API endpoint for creating a user. It must accept name, email, and age.
+Name and email are required. Age must be an integer between 18 and 120.
+Email addresses must be unique.
+Return HTTP 201 when the user is created, HTTP 400 for invalid input,
+and HTTP 409 when the email already exists.
+The response must be JSON and must never expose the user's password.""",
+
+    # =========================================================
+    # 13. NEGATIONS / EXCEPTIONS
+    # =========================================================
+    """Given the list [5, 2, 5, 3, 2, 1], remove duplicate values but do not sort
+the list. Preserve the order of the first occurrence of every value.""",
+
+    """Rewrite the following sentence without changing its meaning.
+Do not shorten it, do not make it more formal, and do not remove the word "not":
+"The service should not restart when the configuration file is missing."
+""",
+
+    # =========================================================
+    # 14. AMBIGUOUS / BORDERLINE
+    # =========================================================
+    "Design a solution for managing user sessions in a web application.",
+    
+    "Help me improve the reliability of a data processing pipeline.",
+
+    # =========================================================
+    # 15. ADVERSARIAL ROUTING
+    # =========================================================
+    "What does the word architecture mean?",
+    
+    "Answer step by step: what is 2 + 2?"
+]

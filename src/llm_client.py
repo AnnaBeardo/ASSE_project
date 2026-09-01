@@ -24,12 +24,14 @@ class LLMHandler:
         self.flash_model = ChatGoogleGenerativeAI(
             model=FLASH_MODEL, 
             temperature=temperature,
-            google_api_key=api_key
+            google_api_key=api_key,
+            timeout=60
         )
         self.pro_model = ChatGoogleGenerativeAI(
             model=PRO_MODEL, 
             temperature=temperature,
-            google_api_key=api_key
+            google_api_key=api_key,
+            timeout=60
         )
         self.compressor = PromptCompressor()
         
