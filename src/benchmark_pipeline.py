@@ -1,4 +1,3 @@
-
 import time
 import sys
 import importlib
@@ -11,7 +10,7 @@ sys.path.append(str(project_root / "prompts"))
 from llm_client import LLMHandler, PRO_MODEL
 from metrics_tracker import MetricsTracker 
 
-PROMPTS_FILE = "diverse_prompts.py" # File containing prompts for benchmarking
+PROMPTS_FILE = "caveman_prompts.py" # File containing prompts for benchmarking
 
 def load_prompts_from_file(filename: str) -> list:
     """Dinamically load prompts from a Python file"""
