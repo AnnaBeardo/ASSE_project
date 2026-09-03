@@ -4,7 +4,7 @@ This repository contains the source code and benchmarking suite for a Master's d
 
 The project introduces an automated pipeline that drastically reduces token consumption and inference latency without sacrificing output quality. It achieves this by combining a "Caveman-style" prompt compression strategy with a two-layer dynamic router (heuristic and semantic), all orchestrated via **LangChain**.
 
-## 🚀 Key Features
+## Key Features
 
 * **LangChain Orchestration:** Utilizes LangChain Expression Language (LCEL) to standardize the workflow, decoupling the application logic from provider-specific APIs.
 * **Dynamic Model Routing:** A two-layer router autonomously evaluates prompt complexity, delegating simple tasks to a low-latency model (`gemini-3.1-flash-lite`) and complex tasks to a flagship model (`gemma-4-31b-it`).
@@ -13,7 +13,7 @@ The project introduces an automated pipeline that drastically reduces token cons
 
 ---
 
-## 🛠️ Getting Started
+## Getting Started
 
 Follow these instructions to set up the project and run the benchmark on your local machine.
 
@@ -71,7 +71,7 @@ The script will iterate through the configured dataset (`prompts/extended_prompt
 
 ---
 
-## 📂 Project Structure
+## Project Structure
 
 * `src/` - Contains the core application logic.
   * `llm_client.py` - LLM initialization and LangChain setup.
@@ -92,5 +92,5 @@ The script will iterate through the configured dataset (`prompts/extended_prompt
 * `requirements.txt` - Python dependencies.
 * `.gitignore` - Excludes virtual environments, caches, and secret files (`.env`).
 
-## 📊 Results Summary
+## Results Summary
 Empirical validation demonstrates that the pipeline reduces inference latency by up to **15x-20x** on simple queries and achieves a consistent **~70-80% reduction** in token consumption across a diverse set of 30 factual, logical, and coding tasks.
