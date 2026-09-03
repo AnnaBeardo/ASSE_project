@@ -26,7 +26,7 @@ from pathlib import Path
 import numpy as np
 from sklearn.metrics.pairwise import cosine_similarity
 
-# Aggiunge la cartella 'src' al path di Python
+# adds the src folder to the path
 project_root = Path(__file__).resolve().parent.parent
 src_path = project_root / "src"
 sys.path.append(str(src_path))
@@ -44,22 +44,20 @@ def load_examples(json_path: Path):
 
 def leave_one_out_margins(embedder, flash_examples, pro_examples):
     """
-    Calcola, per ogni esempio, il margine (pro_sim - flash_sim) usando
-    leave-one-out: l'esempio stesso viene escluso dal proprio pool prima
-    del calcolo della similarity, per non confrontarlo con se stesso.
+    For each example, calculate the margin (pro_sim - flash_sim) in a leave-one-out fashion.
 
-    Ritorna due liste di margini: quelli calcolati sugli esempi flash
-    (dovrebbero essere negativi, cioe' piu' simili a flash) e quelli
-    calcolati sugli esempi pro (dovrebbero essere positivi).
+    Returns two lists of margins: those calculated on flash examples
+    (which should be negative, i.e., more similar to flash) and those
+    calculated on pro examples (which should be positive).
     """
-    print("Calcolo embedding per tutti gli esempi (puo' richiedere qualche secondo)...")
+    print("Calculating embeddings...")
     flash_embeddings = embedder.encode(flash_examples)
     pro_embeddings = embedder.encode(pro_examples)
 
     flash_margins = []
     for i in range(len(flash_examples)):
         query = flash_embeddings[i:i + 1]
-        # Leave-one-out: escludi l'esempio i-esimo dal pool flash
+        # Leave-one-out: exclude the current example from the pool
         pool_flash = np.delete(flash_embeddings, i, axis=0)
 
         flash_sim = np.max(cosine_similarity(query, pool_flash))
@@ -86,11 +84,11 @@ def print_stats(name: str, margins: np.ndarray):
 
 def sweep_thresholds(flash_margins: np.ndarray, pro_margins: np.ndarray, lo=-0.3, hi=0.3, step=0.01):
     """
-    Per ogni soglia candidata, la regola di classificazione e':
+    For each candidate threshold, the classification rule is:
         margin >= threshold  ->  "high" (pro)
         margin <  threshold  ->  "low"  (flash)
 
-    Calcola accuracy, precision, recall, F1 (classe positiva = "pro"/high).
+    Calculates accuracy, precision, recall, F1 (positive class = "pro"/high).
     """
     thresholds = np.arange(lo, hi + step, step)
     results = []
@@ -99,10 +97,10 @@ def sweep_thresholds(flash_margins: np.ndarray, pro_margins: np.ndarray, lo=-0.3
     n_flash = len(flash_margins)
 
     for t in thresholds:
-        tp = int(np.sum(pro_margins >= t))          # pro classificati correttamente come high
-        fn = n_pro - tp                               # pro classificati erroneamente come low
-        fp = int(np.sum(flash_margins >= t))          # flash classificati erroneamente come high
-        tn = n_flash - fp                             # flash classificati correttamente come low
+        tp = int(np.sum(pro_margins >= t))          # pro examples correctly classified as high
+        fn = n_pro - tp                               # pro examples incorrectly classified as low
+        fp = int(np.sum(flash_margins >= t))          # flash examples incorrectly classified as high
+        tn = n_flash - fp                             # flash examples correctly classified as low
 
         accuracy = (tp + tn) / (n_pro + n_flash)
         precision = tp / (tp + fp) if (tp + fp) > 0 else 0.0
@@ -120,33 +118,33 @@ def sweep_thresholds(flash_margins: np.ndarray, pro_margins: np.ndarray, lo=-0.3
 def run_calibration():
     json_path = src_path / "routing_prompts.json"
     flash_examples, pro_examples = load_examples(json_path)
-    print(f"Caricati {len(flash_examples)} esempi Flash e {len(pro_examples)} esempi Pro da '{json_path}'.")
+    print(f"Loaded {len(flash_examples)} Flash examples and {len(pro_examples)} Pro examples from '{json_path}'.")
 
-    print("Caricamento embedder (stesso modello usato da SemanticRouter)...")
+    print("Loading embedder (same model used by SemanticRouter)...")
     compressor = PromptCompressor()
     embedder = compressor.model
 
     flash_margins, pro_margins = leave_one_out_margins(embedder, flash_examples, pro_examples)
 
     print("\n" + "=" * 70)
-    print("📊 DISTRIBUZIONE DEI MARGINI (pro_sim - flash_sim), leave-one-out")
+    print("📊 DISTRIBUTION OF MARGINS (pro_sim - flash_sim), leave-one-out")
     print("=" * 70)
-    print_stats("Esempi FLASH (atteso: margine basso/negativo)", flash_margins)
-    print_stats("Esempi PRO   (atteso: margine alto/positivo)", pro_margins)
+    print_stats("Flash examples (expected: low/negative margin)", flash_margins)
+    print_stats("Pro examples (expected: high/positive margin)", pro_margins)
 
     overlap = np.sum(flash_margins >= pro_margins.min()) if len(pro_margins) else 0
-    print(f"\nEsempi flash con margine >= al minimo dei margini pro: {overlap} "
-          f"(indica quanto le due distribuzioni si sovrappongono)")
+    print(f"\nFlash examples with margin >= the minimum of the Pro margins: {overlap} "
+          f"(indicates how much the two distributions overlap)")
 
     print("\n" + "=" * 70)
-    print("📈 SWEEP DELLE SOGLIE (margin_threshold)")
+    print("📈 SWEEP OF THRESHOLDS (margin_threshold)")
     print("=" * 70)
     print(f"{'thresh':>8} | {'acc':>6} | {'prec':>6} | {'rec':>6} | {'f1':>6} | tp/fp/tn/fn")
     print("-" * 70)
 
     results = sweep_thresholds(flash_margins, pro_margins)
     for r in results:
-        # stampiamo solo ogni 2 righe per non intasare l'output
+        # print only thresholds that are multiples of 0.02 (to avoid too many lines)
         if round(r["threshold"] * 100) % 2 == 0:
             print(f"{r['threshold']:8.3f} | {r['accuracy']:6.3f} | {r['precision']:6.3f} | "
                   f"{r['recall']:6.3f} | {r['f1']:6.3f} | "
@@ -156,22 +154,22 @@ def run_calibration():
     best_acc = max(results, key=lambda r: r["accuracy"])
 
     print("\n" + "=" * 70)
-    print("✅ RACCOMANDAZIONI")
+    print("✅ RECOMMENDATIONS")
     print("=" * 70)
-    print(f"Soglia con miglior F1:       margin_threshold = {best_f1['threshold']:.3f} "
+    print(f"Threshold with best F1:       margin_threshold = {best_f1['threshold']:.3f} "
           f"(F1={best_f1['f1']:.3f}, accuracy={best_f1['accuracy']:.3f}, "
           f"precision={best_f1['precision']:.3f}, recall={best_f1['recall']:.3f})")
-    print(f"Soglia con miglior accuracy: margin_threshold = {best_acc['threshold']:.3f} "
+    print(f"Threshold with best accuracy: margin_threshold = {best_acc['threshold']:.3f} "
           f"(accuracy={best_acc['accuracy']:.3f}, F1={best_acc['f1']:.3f})")
 
     midpoint = (flash_margins.mean() + pro_margins.mean()) / 2
-    print(f"Punto medio tra le due medie (euristica semplice): margin_threshold = {midpoint:.3f}")
+    print(f"Midpoint between the two means (simple heuristic): margin_threshold = {midpoint:.3f}")
 
-    print("\nNota: se le due distribuzioni si sovrappongono molto (F1 max basso, es. < 0.7),")
-    print("il problema non e' solo la soglia: significa che l'embedder e/o gli esempi in")
-    print("routing_prompts.json non separano bene i due concetti 'semplice' vs 'complesso'.")
-    print("In quel caso conviene arricchire/ripulire il JSON con esempi piu' rappresentativi")
-    print("prima di fidarsi ciecamente della soglia trovata qui.")
+    print("\nNote: if the two distributions overlap significantly (low max F1, e.g., < 0.7),")
+    print("the issue is not just the threshold: this indicates that the embedder and/or examples in")
+    print("routing_prompts.json do not adequately distinguish the two concepts 'simple' vs 'complex'.")
+    print("In such cases, it is advisable to enrich/clean the JSON with more representative examples")
+    print("before blindly trusting the threshold found here.")
     print("=" * 70)
 
 
